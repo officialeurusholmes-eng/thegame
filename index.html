@@ -1,0 +1,909 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Investigator — Case No. 1147</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Special+Elite&family=Crimson+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper: #E8DFC6;
+    --paper2: #f2ead6;
+    --paper-shadow: #D3C6A0;
+    --paper-line: #b9a877;
+    --ink: #211d16;
+    --ink-soft: #4a4335;
+    --navy: #12151b;
+    --navy-2: #1b212b;
+    --navy-3: #242c38;
+    --brass: #b6913f;
+    --brass-bright: #d9b465;
+    --stamp: #8c2a2a;
+    --stamp-dark: #6e2020;
+    --focus: #d9b465;
+    --radius: 3px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html,body{
+    margin:0; padding:0; min-height:100vh;
+    background:
+      radial-gradient(ellipse at 20% 0%, #1d2430 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 100%, #1a1f28 0%, transparent 55%),
+      var(--navy);
+    color: var(--paper);
+    font-family: 'Crimson Pro', Georgia, serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection{ background: var(--brass); color: var(--navy); }
+
+  a, button, [role="button"], select, input{ font-family: inherit; }
+
+  button{ cursor: pointer; border: none; background: none; color: inherit; }
+  button:focus-visible, .card:focus-visible, select:focus-visible{
+    outline: 3px solid var(--focus); outline-offset: 2px;
+  }
+
+  .mono{ font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.03em; }
+  .type{ font-family: 'Special Elite', 'IBM Plex Mono', monospace; }
+
+  #app{ min-height: 100vh; display:flex; flex-direction:column; }
+
+  /* ---------- svg fills / utility ---------- */
+  .fill-ink{ fill: var(--ink); }
+  .fill-paper{ fill: var(--paper); }
+  .fill-paper2{ fill: var(--paper2); }
+  .fill-navy2{ fill: var(--navy-2); }
+  .fill-navy3{ fill: var(--navy-3); }
+  .fill-brass{ fill: var(--brass); }
+  .fill-brass-bright{ fill: var(--brass-bright); }
+  .fill-stamp{ fill: var(--stamp); }
+  .fill-none{ fill: none; }
+  .stroke-brass{ stroke: var(--brass-bright); }
+  .stroke-ink{ stroke: var(--ink); }
+  .stroke-paper{ stroke: var(--paper2); }
+
+  .glow{ animation: flicker 2.6s ease-in-out infinite; transform-origin: center; }
+  .glow.slow{ animation-duration: 3.6s; }
+  .glow.fast{ animation-duration: 1.6s; }
+  @keyframes flicker{
+    0%,100%{ opacity: 0.85; }
+    45%{ opacity: 1; }
+    60%{ opacity: 0.7; }
+  }
+
+  /* ---------- header ---------- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 22px;
+    border-bottom: 1px solid #2b3341;
+    background: linear-gradient(180deg, #171c24, #12151b);
+    position: sticky; top:0; z-index: 30;
+  }
+  .case-id{ font-size: 12px; color: var(--brass-bright); }
+  .case-id .title{ font-family: 'Special Elite', monospace; font-size: 15px; color: var(--paper); display:block; margin-top:2px; }
+  .stamp-chip{
+    font-family: 'Special Elite', monospace; font-size: 11px;
+    border: 2px solid var(--stamp); color: var(--stamp);
+    padding: 4px 10px; border-radius: 2px; transform: rotate(-3deg); letter-spacing: 0.08em;
+  }
+
+  /* ---------- generic layout ---------- */
+  .stage{ flex:1; display:flex; flex-direction:column; align-items:center; padding: 32px 18px 70px; }
+  .sheet{
+    width: 100%; max-width: 880px;
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: var(--radius);
+    box-shadow: 0 25px 60px -20px rgba(0,0,0,0.6), 0 2px 0 var(--paper-shadow) inset;
+    position: relative; overflow: hidden;
+    animation: sheetIn .45s cubic-bezier(.2,.7,.3,1) both;
+  }
+  @keyframes sheetIn{
+    from{ opacity: 0; transform: translateY(14px) scale(.99); }
+    to{ opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .sheet::before{
+    content:""; position:absolute; inset:0;
+    background-image: repeating-linear-gradient(0deg, transparent 0 27px, var(--paper-line) 28px, transparent 29px);
+    opacity: 0.15; pointer-events:none;
+  }
+  .sheet-inner{ position:relative; padding: 34px 36px 30px; }
+
+  h1,h2,h3{ font-family: 'Special Elite', monospace; font-weight: 400; margin: 0 0 10px; color: var(--ink); }
+  h1{ font-size: 26px; }
+  h2{ font-size: 19px; }
+  h3{ font-size: 15px; }
+  p{ line-height: 1.55; margin: 0 0 14px; }
+  .lede{ font-size: 17px; }
+  .fine{ font-size: 13px; color: var(--ink-soft); }
+  .typewrite{ min-height: 1.2em; }
+  .typewrite::after{ content:""; }
+
+  .btn{
+    display:inline-flex; align-items:center; gap:8px;
+    background: var(--navy); color: var(--paper);
+    padding: 11px 20px; font-family: 'Special Elite', monospace;
+    font-size: 14px; letter-spacing: 0.02em; border-radius: 2px;
+    box-shadow: 0 3px 0 #05070a; transition: transform .12s ease, box-shadow .12s ease;
+  }
+  .btn:hover{ transform: translateY(1px); box-shadow: 0 2px 0 #05070a; }
+  .btn:active{ transform: translateY(3px); box-shadow: 0 0 0 #05070a; }
+  .btn.brass{ background: var(--brass); color: #1c1400; box-shadow: 0 3px 0 #6f5322; }
+  .btn.ghost{ background: transparent; color: var(--ink); box-shadow: none; border: 1.5px solid var(--ink); }
+  .btn[disabled]{ opacity: 0.4; cursor: not-allowed; }
+  .btn-row{ display:flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+
+  /* ---------- illustrations ---------- */
+  .illust{
+    width: 100%; border-radius: 3px; overflow:hidden;
+    border: 1.5px solid var(--paper-line);
+    background: var(--navy-2);
+    display:block;
+    animation: illustIn .5s ease both;
+  }
+  .illust svg{ display:block; width:100%; height:auto; }
+  @keyframes illustIn{
+    from{ opacity: 0; transform: scale(1.03); }
+    to{ opacity: 1; transform: scale(1); }
+  }
+  .illust-hero{ max-height: 220px; }
+  .illust-card{ max-height: 100px; margin-bottom: 8px; }
+  .illust-detail{ max-height: 240px; margin-bottom: 14px; }
+  .illust-portrait{ width: 100%; max-width: 96px; border-radius: 50%; }
+  .illust-portrait-lg{ width: 120px; margin: 0 auto; }
+
+  /* ---------- COVER ---------- */
+  .cover-wrap{ flex:1; display:flex; align-items:center; justify-content:center; padding: 40px 18px; perspective: 1400px; }
+  .folder{ width: min(92vw, 460px); height: min(70vw, 320px); position: relative; cursor: pointer; }
+  .folder-back{ position:absolute; inset:0; background:#2a1f14; border-radius: 4px 4px 10px 10px; box-shadow: 0 30px 60px -15px rgba(0,0,0,0.7); }
+  .folder-tab{ position:absolute; top:-16px; left: 24px; width: 130px; height: 26px; background:#34271a; border-radius: 4px 4px 0 0; }
+  .folder-front{
+    position:absolute; inset: 0; background: linear-gradient(160deg, #3a2c1c, #2a2013);
+    border-radius: 4px 4px 10px 10px; transform-origin: left center;
+    transition: transform .9s cubic-bezier(.6,.1,.2,1);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    box-shadow: inset 0 0 40px rgba(0,0,0,0.4);
+  }
+  .folder.open .folder-front{ transform: rotateY(-140deg); }
+  .seal{ width: 96px; height: 96px; margin-bottom: 10px; }
+  .folder-label{ color: var(--brass-bright); font-family:'IBM Plex Mono'; font-size: 13px; letter-spacing: 0.08em; }
+  .cover-cta{ margin-top: 26px; text-align:center; }
+  .cover-cta .fine{ color: #8a95a6; margin-top:10px; }
+
+  /* ---------- HUB ---------- */
+  .hub-tabs{ display:flex; gap: 4px; margin-bottom: 20px; border-bottom: 2px solid var(--ink); flex-wrap: wrap; }
+  .hub-tab{ font-family: 'Special Elite', monospace; font-size: 13px; padding: 9px 16px; color: var(--ink-soft); border-radius: 3px 3px 0 0; position: relative; top:2px; }
+  .hub-tab.active{ background: var(--ink); color: var(--paper); }
+
+  .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(210px,1fr)); gap: 14px; }
+
+  .card{
+    background: var(--paper2); border: 1.5px solid var(--paper-line);
+    border-radius: 3px; padding: 14px; text-align:left;
+    display:flex; flex-direction:column; gap:4px; position: relative;
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  .card:hover{ transform: translateY(-2px); box-shadow: 0 8px 16px -8px rgba(0,0,0,0.35); }
+  .card .tag{ font-family:'IBM Plex Mono'; font-size: 10.5px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.08em; }
+  .card h3{ margin: 2px 0 4px; }
+  .card .desc{ font-size: 13.5px; color: var(--ink-soft); margin:0; }
+  .card-portrait-wrap{ display:flex; justify-content:center; margin-bottom: 4px; }
+  .check{
+    position:absolute; top:10px; right:10px; width: 22px; height:22px; border-radius: 50%;
+    background: var(--stamp); color: var(--paper); display:flex; align-items:center; justify-content:center;
+    font-size: 12px; font-family:'IBM Plex Mono'; transform: rotate(-8deg); z-index:2;
+  }
+
+  .detail{ margin-top: 18px; background: #fffdf6; border: 1.5px dashed var(--paper-line); border-radius: 3px; padding: 18px 20px; animation: sheetIn .4s ease both; }
+  .detail .evidence-tag{ display:inline-block; margin-top: 10px; background: var(--stamp); color: var(--paper); font-family:'IBM Plex Mono'; font-size: 11px; padding: 3px 9px; border-radius: 2px; letter-spacing: 0.04em; }
+
+  .suspect-head{ display:flex; gap: 14px; align-items:center; margin-bottom: 6px;}
+  .qa-list{ display:flex; flex-direction:column; gap:10px; margin-top: 14px; }
+  .qa-btn{ text-align:left; background: var(--paper2); border: 1.3px solid var(--paper-line); padding: 10px 14px; border-radius: 3px; font-size: 14px; display:flex; justify-content:space-between; gap: 10px; align-items:center; }
+  .qa-btn:hover:not([disabled]){ background: #e9dfc0; }
+  .qa-btn[disabled]{ opacity: 0.55; cursor: default; }
+  .qa-btn .arrow{ font-family:'IBM Plex Mono'; font-size: 12px; }
+  .answer-box{ background: #fffdf6; border-left: 3px solid var(--stamp); padding: 10px 14px; margin-top: 6px; font-size: 14px; border-radius: 0 3px 3px 0; animation: sheetIn .35s ease both; }
+
+  /* ---------- notebook ---------- */
+  .layout{ display:flex; gap: 22px; width:100%; max-width: 1180px; align-items:flex-start; }
+  .main-col{ flex: 1 1 640px; min-width: 0; }
+  .notebook{ flex: 0 0 300px; background: #201a12; border: 1px solid #3a2f1e; border-radius: var(--radius); padding: 18px 18px 16px; position: sticky; top: 84px; }
+  .notebook h2{ color: var(--brass-bright); font-size: 15px; }
+  .notebook .fine{ color: #9a8f78; margin-bottom: 12px; }
+  .ev-item{ border-bottom: 1px dotted #4a3d26; padding: 9px 0; font-size: 13px; color: #e6dcc4; }
+  .ev-item:last-child{ border-bottom:none; }
+  .ev-item .from{ font-family:'IBM Plex Mono'; font-size: 10px; color: var(--brass-bright); text-transform:uppercase; display:block; margin-bottom:2px; letter-spacing:0.06em; }
+  .ev-empty{ font-size: 13px; color: #6b6250; font-style: italic; }
+
+  /* ---------- accusation ---------- */
+  .accuse-grid{ display:grid; grid-template-columns: 1fr; gap: 18px; margin-top: 10px; }
+  @media(min-width: 620px){ .accuse-grid{ grid-template-columns: 1fr 1fr 1fr; } }
+  .accuse-group h3{ margin-bottom: 8px; }
+  .opt{ display:block; width:100%; text-align:left; background: var(--paper2); border: 1.5px solid var(--paper-line); padding: 9px 12px; border-radius: 3px; margin-bottom: 7px; font-size: 13.5px; }
+  .opt.selected{ background: var(--ink); color: var(--paper); border-color: var(--ink); }
+
+  .board{ display:flex; gap: 18px; flex-wrap:wrap; margin: 20px 0 6px; justify-content:center; }
+  .board-card{ text-align:center; width: 96px; }
+  .board-card .illust-portrait{ margin-bottom:6px; }
+  .board-name{ font-size: 11px; color: var(--ink-soft); }
+
+  /* ---------- ending ---------- */
+  .ending-stamp-wrap{ position:relative; display:inline-block; margin-bottom: 14px; }
+  .ending-stamp{ position:relative; z-index:2; font-family:'Special Elite', monospace; font-size: 30px; border: 4px solid var(--stamp); color: var(--stamp); display:inline-block; padding: 10px 22px; border-radius: 4px; transform: rotate(-4deg); animation: stampdown .5s ease-out; }
+  @keyframes stampdown{ 0%{ transform: scale(2.4) rotate(-4deg); opacity:0;} 60%{ opacity:1;} 100%{ transform: scale(1) rotate(-4deg); opacity:1;} }
+  @media (prefers-reduced-motion: reduce){
+    .ending-stamp, .illust, .sheet, .detail, .answer-box{ animation: none !important; }
+    .glow{ animation: none !important; }
+    .folder-front{ transition: none; }
+    .card, .qa-btn, .btn{ transition: none; }
+  }
+
+  .recap{ background: var(--paper2); border:1px solid var(--paper-line); border-radius:3px; padding: 14px 16px; margin-top: 18px; }
+  .recap ul{ margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; }
+
+  footer.tag{ text-align:center; padding: 16px; font-size: 11px; color: #5b6473; font-family:'IBM Plex Mono'; }
+
+  @media (max-width: 900px){ .layout{ flex-direction: column; } .notebook{ position: static; width:100%; flex-basis: auto; order: -1; } }
+  @media (max-width: 540px){ .sheet-inner{ padding: 24px 18px; } .board-card{ width: 76px; } }
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+
+  // ==================== ART (inline SVG illustrations) ====================
+
+  const ART = {
+
+    seal: `<svg viewBox="0 0 100 100" class="seal" aria-hidden="true">
+      <g class="fill-brass glow slow">
+        ${Array.from({length:16}).map((_,i)=>{
+          const a = (i/16)*Math.PI*2;
+          const x1 = 50+Math.cos(a)*34, y1=50+Math.sin(a)*34;
+          const x2 = 50+Math.cos(a)*46, y2=50+Math.sin(a)*46;
+          return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" class="stroke-brass" stroke-width="3" stroke-linecap="round"/>`;
+        }).join('')}
+      </g>
+      <circle cx="50" cy="50" r="32" class="fill-stamp"/>
+      <circle cx="50" cy="50" r="32" class="fill-none stroke-brass" stroke-width="2"/>
+      <text x="50" y="56" text-anchor="middle" font-family="Special Elite, monospace" font-size="13" fill="#f2ead6">B.M.</text>
+    </svg>`,
+
+    manor: `<svg viewBox="0 0 420 210" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <rect width="420" height="210" class="fill-navy2"/>
+      <circle cx="358" cy="42" r="20" class="fill-brass-bright glow slow"/>
+      <polygon points="255,210 255,150 280,120 305,150 305,210" class="fill-ink"/>
+      <polygon points="315,210 315,160 335,138 355,160 355,210" class="fill-ink"/>
+      <polygon points="18,210 18,80 100,80 100,210" class="fill-ink"/>
+      <polygon points="100,210 100,55 195,55 195,210" class="fill-ink"/>
+      <polygon points="195,210 195,90 250,90 250,210" class="fill-ink"/>
+      <polygon points="82,55 148,15 214,55" class="fill-ink"/>
+      <rect x="163" y="76" width="20" height="26" class="fill-brass glow" />
+      <rect x="120" y="130" width="18" height="24" class="fill-navy2"/>
+      <rect x="120" y="170" width="18" height="24" class="fill-navy2"/>
+      <rect x="0" y="205" width="420" height="5" class="fill-ink"/>
+    </svg>`,
+
+    body: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-paper2"/>
+      <rect x="30" y="118" width="240" height="12" class="fill-ink"/>
+      <rect x="46" y="130" width="14" height="34" class="fill-ink"/>
+      <rect x="240" y="130" width="14" height="34" class="fill-ink"/>
+      <path d="M95,118 C95,90 115,68 150,66 C185,68 205,88 202,116 C230,112 232,120 228,122 L92,122 Z" class="fill-ink"/>
+      <line x1="178" y1="104" x2="204" y2="96" class="stroke-ink" stroke-width="3" stroke-linecap="round"/>
+      <polygon points="198,64 232,64 224,32 206,32" class="fill-brass glow"/>
+      <rect x="212" y="64" width="6" height="18" class="fill-brass"/>
+      <ellipse cx="215" cy="48" rx="17" ry="16" class="fill-brass-bright glow fast" opacity="0.5"/>
+    </svg>`,
+
+    desk: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-paper2"/>
+      <rect x="40" y="60" width="220" height="20" class="fill-ink"/>
+      <rect x="60" y="80" width="180" height="60" class="fill-ink" opacity="0.85"/>
+      <rect x="80" y="88" width="140" height="34" class="fill-navy2"/>
+      <polygon points="95,88 130,88 118,116 95,116" class="fill-paper glow"/>
+      <line x1="98" y1="96" x2="122" y2="96" class="stroke-ink" stroke-width="2"/>
+      <line x1="98" y1="104" x2="122" y2="104" class="stroke-ink" stroke-width="2"/>
+      <circle cx="205" cy="60" r="16" class="fill-none stroke-brass" stroke-width="4"/>
+      <line x1="216" y1="71" x2="232" y2="87" class="stroke-brass" stroke-width="5" stroke-linecap="round"/>
+    </svg>`,
+
+    fireplace: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-paper2"/>
+      <path d="M60,150 L60,80 Q150,20 240,80 L240,150 Z" class="fill-ink"/>
+      <path d="M85,150 L85,92 Q150,45 215,92 L215,150 Z" class="fill-navy"/>
+      <circle cx="135" cy="130" r="7" class="fill-brass glow"/>
+      <circle cx="155" cy="138" r="5" class="fill-stamp glow fast"/>
+      <circle cx="170" cy="128" r="6" class="fill-brass-bright glow slow"/>
+      <circle cx="148" cy="118" r="4" class="fill-stamp glow"/>
+      <rect x="245" y="95" width="6" height="45" class="fill-brass"/>
+      <rect x="245" y="140" width="26" height="8" class="fill-brass"/>
+      <rect x="253" y="70" width="10" height="20" class="fill-none stroke-brass" stroke-width="2" stroke-dasharray="3 3"/>
+      <polygon points="252,58 268,58 264,44 256,44" class="fill-brass-bright glow fast"/>
+    </svg>`,
+
+    window: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-paper2"/>
+      <rect x="70" y="30" width="160" height="120" class="fill-navy2" stroke="#211d16" stroke-width="6"/>
+      <line x1="150" y1="30" x2="150" y2="150" class="stroke-ink" stroke-width="4"/>
+      <line x1="70" y1="90" x2="230" y2="90" class="stroke-ink" stroke-width="4"/>
+      <polygon points="95,90 118,60 135,90" class="fill-ink" opacity="0.6"/>
+      <polygon points="165,90 185,55 208,90" class="fill-ink" opacity="0.6"/>
+      <path d="M75,32 Q90,70 75,148" class="fill-brass" opacity="0.5"/>
+      <path d="M225,32 Q210,70 225,148" class="fill-brass" opacity="0.5"/>
+      <circle cx="70" cy="90" r="7" class="fill-brass-bright glow"/>
+    </svg>`,
+
+    rug: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-paper2"/>
+      <rect x="45" y="45" width="210" height="90" rx="6" class="fill-stamp" opacity="0.85"/>
+      <rect x="60" y="60" width="180" height="60" rx="4" class="fill-none stroke-brass" stroke-width="3"/>
+      <ellipse cx="120" cy="150" rx="16" ry="9" class="fill-ink" opacity="0.75"/>
+      <ellipse cx="150" cy="158" rx="15" ry="8" class="fill-ink" opacity="0.75"/>
+      <polygon points="205,110 240,110 240,140 214,140" class="fill-paper glow"/>
+      <line x1="212" y1="118" x2="232" y2="118" class="stroke-ink" stroke-width="2"/>
+      <line x1="212" y1="126" x2="232" y2="126" class="stroke-ink" stroke-width="2"/>
+    </svg>`,
+
+    eleanor: `<svg viewBox="0 0 160 200" aria-hidden="true">
+      <circle cx="80" cy="100" r="78" class="fill-navy3"/>
+      <path d="M35,190 Q40,120 80,118 Q120,120 125,190 Z" class="fill-ink"/>
+      <circle cx="80" cy="80" r="34" class="fill-ink"/>
+      <path d="M46,70 Q80,30 114,70 Q118,50 80,40 Q42,50 46,70 Z" class="fill-ink"/>
+      <circle cx="80" cy="108" r="4" class="fill-brass-bright glow"/>
+    </svg>`,
+
+    victor: `<svg viewBox="0 0 160 200" aria-hidden="true">
+      <circle cx="80" cy="100" r="78" class="fill-navy3"/>
+      <path d="M32,192 Q42,122 80,120 Q118,122 128,192 Z" class="fill-ink"/>
+      <circle cx="80" cy="80" r="32" class="fill-ink"/>
+      <path d="M50,66 Q80,52 110,66 L110,58 Q80,44 50,58 Z" class="fill-ink"/>
+      <circle cx="68" cy="82" r="9" class="fill-none stroke-brass" stroke-width="2.5"/>
+      <circle cx="92" cy="82" r="9" class="fill-none stroke-brass" stroke-width="2.5"/>
+      <line x1="77" y1="82" x2="83" y2="82" class="stroke-brass" stroke-width="2.5"/>
+    </svg>`,
+
+    marguerite: `<svg viewBox="0 0 160 200" aria-hidden="true">
+      <circle cx="80" cy="100" r="78" class="fill-navy3"/>
+      <path d="M38,190 Q44,120 80,118 Q116,120 122,190 Z" class="fill-ink"/>
+      <circle cx="80" cy="82" r="30" class="fill-ink"/>
+      <path d="M55,66 Q80,44 105,66 Q100,58 80,56 Q60,58 55,66 Z" class="fill-paper"/>
+      <rect x="60" y="118" width="40" height="8" rx="3" class="fill-brass"/>
+    </svg>`,
+
+    thomas: `<svg viewBox="0 0 160 200" aria-hidden="true">
+      <circle cx="80" cy="100" r="78" class="fill-navy3"/>
+      <path d="M34,192 Q46,124 80,122 Q114,124 126,192 Z" class="fill-ink"/>
+      <circle cx="80" cy="80" r="31" class="fill-ink"/>
+      <path d="M50,62 Q60,44 80,48 Q100,44 110,62 Q98,52 80,54 Q62,52 50,62 Z" class="fill-ink"/>
+      <line x1="70" y1="120" x2="92" y2="132" class="stroke-brass" stroke-width="3" stroke-linecap="round"/>
+    </svg>`,
+
+    escape: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-navy2"/>
+      <rect x="200" y="30" width="14" height="130" class="fill-ink"/>
+      <rect x="214" y="30" width="70" height="130" class="fill-navy3"/>
+      <circle cx="240" cy="42" r="14" class="fill-brass-bright glow slow"/>
+      <path d="M60,160 L60,110 Q60,90 72,86 Q84,90 84,110 L84,160 Z" class="fill-ink"/>
+      <circle cx="72" cy="70" r="14" class="fill-ink"/>
+      <line x1="90" y1="150" x2="130" y2="140" class="stroke-ink" stroke-width="3" stroke-dasharray="5 5"/>
+    </svg>`,
+
+    torn: `<svg viewBox="0 0 300 170" aria-hidden="true">
+      <rect width="300" height="170" class="fill-navy2"/>
+      <polygon points="90,40 210,40 220,150 150,135 80,150" class="fill-paper2"/>
+      <polygon points="150,40 210,40 220,150 150,135" class="fill-paper" opacity="0.5"/>
+      <line x1="105" y1="65" x2="175" y2="65" class="stroke-ink" stroke-width="3"/>
+      <line x1="105" y1="80" x2="175" y2="80" class="stroke-ink" stroke-width="3"/>
+      <line x1="105" y1="95" x2="150" y2="95" class="stroke-ink" stroke-width="3"/>
+      <circle cx="205" cy="55" r="8" class="fill-brass-bright glow"/>
+    </svg>`,
+  };
+
+  function illust(name, cls){
+    return `<div class="illust ${cls||''}">${ART[name]}</div>`;
+  }
+
+  // ==================== DATA ====================
+
+  const SCENE_CLUES = [
+    { id: 'body', title: 'The Body', tag: 'Study — East Wall', art:'body',
+      desc: 'Edmund Blackwood, found slumped over his desk.',
+      text: "Edmund Blackwood lies face-down over his own desk, struck once at the base of the skull. There are no defensive wounds on his hands or arms — no sign he raised an arm to block a blow. Whatever happened, he never saw it coming. He was still holding a fountain pen. He was writing when he died, and he trusted whoever was standing behind him.",
+      evidence: { key: true, label: 'No struggle — victim trusted his killer' } },
+    { id: 'desk', title: 'The Desk', tag: 'Study — Under the Lamp', art:'desk',
+      desc: 'Papers in disarray. A ledger drawer forced open.',
+      text: "The lower drawer of the desk has been pried open — not with a key. Inside, the company ledger is missing several pages from the last quarter. Caught in the drawer's hinge is a single torn corner of paper, a column of handwritten figures on it. The handwriting is small, cramped, and unmistakably not Edmund's own looping script.",
+      evidence: { key: true, label: 'Torn ledger page, unfamiliar handwriting' } },
+    { id: 'fireplace', title: 'The Fireplace', tag: 'Study — North Wall', art:'fireplace',
+      desc: 'The fire iron is missing from its stand.',
+      text: "The brass stand beside the hearth is missing its poker — the murder weapon, most likely, taken from the room itself rather than brought in. Sifting through the ash, something glints: a cufflink, half-melted, the enamel scorched but a monogram still legible beneath the soot. Two letters: V. H.",
+      evidence: { key: true, label: 'Scorched cufflink monogrammed "V.H."' } },
+    { id: 'window', title: 'The Window', tag: 'Study — Facing the Garden', art:'window',
+      desc: 'Latched, but from which side?',
+      text: "The window latch is fastened from the inside, and there's no sign of forced entry — no scratches, no broken pane. If someone came in through the garden, they didn't break in. More likely, whoever did this was already inside the house, with no need to sneak past a locked door at all.",
+      evidence: { key: true, label: 'No forced entry — the killer had access already' } },
+    { id: 'rug', title: 'The Rug', tag: 'Study — By the Door', art:'rug',
+      desc: 'A muddy print, and a scrap of paper.',
+      text: "A single muddy footprint, size ten, tracks across the rug toward the door — inconclusive on its own, half the house could wear that size. Tucked beneath the rug's edge, a crumpled notice from a gambling house on Fenwick Street, addressed to Thomas Reed, demanding payment within the week.",
+      evidence: { key: false, label: "Thomas Reed's gambling debt notice (unrelated to the wound)" } },
+  ];
+
+  const SUSPECTS = [
+    { id: 'eleanor', name: 'Eleanor Blackwood', role: 'The Widow', art:'eleanor',
+      alibi: 'Asleep in her room upstairs, alone, since half past ten.',
+      questions: [
+        { id: 'e1', q: 'Where were you at eleven o\'clock?',
+          a: '"Asleep. I heard nothing until Marguerite screamed." Her voice is steady, but she does not meet your eyes when she says it.',
+          key:false, label:'Eleanor claims to have been asleep, alone, unwitnessed' },
+        { id: 'e2', q: 'Were you and your husband happy?',
+          a: '"We had our difficulties, like any marriage of twenty years." She mentions, unprompted, that Edmund had been "reconsidering the will" in recent weeks — then stops herself, as if she\'s said too much.',
+          key:false, label:'Eleanor: Edmund was reconsidering his will' },
+        { id: 'e3', q: 'What can you tell me about Victor Hale?',
+          a: 'A pause, half a second too long. "Victor is a family friend. He and Edmund built the company together." She adds nothing further, and does not ask why you\'re asking.',
+          key:false, label:'Eleanor is guarded when Victor Hale is mentioned' },
+      ]},
+    { id: 'victor', name: 'Victor Hale', role: 'The Business Partner', art:'victor',
+      alibi: 'In the guest room reviewing shipping ledgers, alone, all evening.',
+      questions: [
+        { id: 'v1', q: 'How are the company\'s finances these days?',
+          a: '"Strong as ever," he says, too quickly, then adds that the last quarter was "a touch complicated" before changing the subject entirely.',
+          key:false, label:'Victor is evasive about the company finances' },
+        { id: 'v2', q: 'Can anyone confirm you were in the guest room?',
+          a: '"No — I work better alone." He shrugs, as if it hardly matters. It means no one at Blackwood Manor can place him anywhere else, either.',
+          key:true, label:'No one can corroborate Victor\'s alibi' },
+        { id: 'v3', q: 'This cufflink — do you recognize it?',
+          a: 'His composure slips for the first time all evening. "I... lost that days ago. In the garden, I think." The embers it was found in were still warm when you arrived tonight.',
+          key:false, label:'Victor claims the cufflink was lost days earlier' },
+      ]},
+    { id: 'marguerite', name: 'Marguerite Sloane', role: 'The Housekeeper', art:'marguerite',
+      alibi: 'In the servants\' wing doing the evening laundry, corroborated by the scullery maid.',
+      questions: [
+        { id: 'm1', q: 'Did you hear anything unusual tonight?',
+          a: '"Raised voices, around eleven. Two men, from the study. I didn\'t catch the words — just the tone of it. Angry." She glances toward the study door as she says it.',
+          key:true, label:'Marguerite heard two men arguing in the study around 11pm' },
+        { id: 'm2', q: 'How do you feel about your position here?',
+          a: '"Twenty years I\'ve given this house." Her hands tighten in her apron. She\'d heard rumors of her own dismissal, she admits, though she doesn\'t say why.',
+          key:false, label:'Marguerite feared she was about to be dismissed' },
+        { id: 'm3', q: 'Anything odd about Mr. Hale lately?',
+          a: '"Buried in the account books, weeks now. Missing supper most nights. I thought it was simply the busy season." She says it plainly, without suspicion of her own.',
+          key:false, label:'Marguerite noticed Victor working late for weeks' },
+      ]},
+    { id: 'thomas', name: 'Thomas Reed', role: 'The Nephew', art:'thomas',
+      alibi: 'Walking the grounds alone, from half past ten.',
+      questions: [
+        { id: 't1', q: 'Where were you at eleven o\'clock?',
+          a: '"Walking. Trying to clear my head." No one saw him — the grounds are dark, and he took no lantern.',
+          key:false, label:'Thomas claims to have been walking the grounds, unwitnessed' },
+        { id: 't2', q: 'What was your relationship with your uncle?',
+          a: '"He cut me from the will last month." He doesn\'t bother to hide his bitterness. "Doesn\'t mean I killed him. I was outside the whole time."',
+          key:false, label:'Thomas was recently cut from Edmund\'s will' },
+        { id: 't3', q: 'Did you see anyone else out and about?',
+          a: '"The study light was still on when I passed, near eleven. I saw a shape at the window — Victor\'s, I\'d swear to it. Broad shoulders, that way he stands." He shrugs. "Didn\'t think much of it."',
+          key:true, label:'Thomas saw Victor\'s silhouette in the study window at 11pm' },
+      ]},
+  ];
+
+  const CULPRITS = SUSPECTS.map(s => ({ id: s.id, label: s.name }));
+  const WEAPONS = [
+    { id:'poker', label:'The fireplace poker' },
+    { id:'letter_opener', label:'A letter opener' },
+    { id:'candlestick', label:'A brass candlestick' },
+    { id:'revolver', label:'A revolver' },
+  ];
+  const MOTIVES = [
+    { id:'embezzlement', label:'To hide the embezzlement' },
+    { id:'affair', label:'Jealousy over an affair' },
+    { id:'blackmail', label:'To silence a blackmail threat' },
+    { id:'debt', label:'Revenge over the will and gambling debts' },
+  ];
+
+  const SOLUTION = { culprit: 'victor', weapon: 'poker', motive: 'embezzlement' };
+  const KEY_EVIDENCE_TOTAL = 7;
+
+  // ==================== STATE ====================
+
+  let state = initialState();
+  function initialState(){
+    return {
+      screen: 'cover', hubTab: 'scene', openScene: null, openSuspect: null,
+      examined: new Set(), asked: new Set(), evidenceLog: [],
+      accusation: { culprit: null, weapon: null, motive: null },
+      confirmingAccusation: false,
+    };
+  }
+
+  const typedOnce = new Set();
+  function reducedMotion(){ return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; }
+
+  function typeInto(node, text, id){
+    if(typedOnce.has(id) || reducedMotion()){
+      node.textContent = text; typedOnce.add(id); return;
+    }
+    typedOnce.add(id);
+    let i = 0;
+    node.textContent = '';
+    const timer = setInterval(() => {
+      i += 2;
+      node.textContent = text.slice(0, i);
+      if(i >= text.length) clearInterval(timer);
+    }, 12);
+  }
+
+  function keyEvidenceCount(){ return state.evidenceLog.filter(e => e.key).length; }
+  function logEvidence(from, label, key){
+    const already = state.evidenceLog.some(e => e.from === from && e.label === label);
+    if(!already) state.evidenceLog.push({ from, label, key });
+  }
+
+  // ==================== RENDER HELPERS ====================
+
+  function el(html){ const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstChild; }
+  function app(){ return document.getElementById('app'); }
+
+  function render(){
+    const root = app();
+    root.innerHTML = '';
+    root.appendChild(buildTopbar());
+
+    if(state.screen === 'cover'){ root.appendChild(buildCover()); root.appendChild(buildFooter()); return; }
+    if(state.screen === 'briefing'){ root.appendChild(buildBriefing()); root.appendChild(buildFooter()); return; }
+
+    const stage = el(`<div class="stage"></div>`);
+    const layout = el(`<div class="layout"></div>`);
+    const mainCol = el(`<div class="main-col"></div>`);
+
+    if(state.screen === 'hub') mainCol.appendChild(buildHub());
+    if(state.screen === 'accusation') mainCol.appendChild(buildAccusation());
+    if(state.screen === 'ending') mainCol.appendChild(buildEnding());
+
+    layout.appendChild(mainCol);
+    layout.appendChild(buildNotebook());
+    stage.appendChild(layout);
+    root.appendChild(stage);
+    root.appendChild(buildFooter());
+  }
+
+  function buildTopbar(){
+    const bar = el(`<div class="topbar"><div class="case-id">CASE FILE<span class="title">No. 1147 — Blackwood Manor</span></div></div>`);
+    if(state.screen !== 'cover' && state.screen !== 'briefing'){
+      const stamp = document.createElement('div');
+      stamp.className = 'stamp-chip';
+      stamp.textContent = state.screen === 'ending' ? 'CLOSED' : 'OPEN';
+      bar.appendChild(stamp);
+    }
+    return bar;
+  }
+
+  function buildFooter(){ return el(`<footer class="tag">BLACKWOOD MANOR ESTATE — PRIVATE &amp; CONFIDENTIAL</footer>`); }
+
+  // ---------- COVER ----------
+  function buildCover(){
+    const wrap = el(`
+      <div class="cover-wrap">
+        <div>
+          <div class="folder" tabindex="0" role="button" aria-label="Open case file">
+            <div class="folder-back"></div>
+            <div class="folder-tab"></div>
+            <div class="folder-front">
+              ${ART.seal}
+              <div class="folder-label">CASE NO. 1147 · BLACKWOOD MANOR</div>
+            </div>
+          </div>
+          <div class="cover-cta">
+            <p class="fine">A body in the study. Four people in the house.<br>Tap the folder to begin.</p>
+          </div>
+        </div>
+      </div>
+    `);
+    const folder = wrap.querySelector('.folder');
+    const openIt = () => {
+      folder.classList.add('open');
+      setTimeout(() => { state.screen = 'briefing'; render(); }, reducedMotion() ? 0 : 650);
+    };
+    folder.addEventListener('click', openIt);
+    folder.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openIt(); } });
+    return wrap;
+  }
+
+  // ---------- BRIEFING ----------
+  function buildBriefing(){
+    const stage = el(`<div class="stage"><div class="sheet"><div class="sheet-inner"></div></div></div>`);
+    const inner = stage.querySelector('.sheet-inner');
+    inner.appendChild(el(illust('manor', 'illust-hero')));
+    inner.appendChild(el(`<h1>Blackwood Manor, 11:40 PM</h1>`));
+    const p1 = el(`<p class="lede typewrite"></p>`);
+    const p2 = el(`<p class="typewrite"></p>`);
+    const p3 = el(`<p class="fine typewrite"></p>`);
+    inner.appendChild(p1); inner.appendChild(p2); inner.appendChild(p3);
+    typeInto(p1, "Edmund Blackwood — shipping magnate, host of tonight's dinner, dead in his own study. Struck once, from behind. The staff found him twenty minutes ago and the house has been sealed since.", 'brief1');
+    typeInto(p2, "Four people were inside Blackwood Manor tonight: his wife, his business partner, his housekeeper, and his nephew. One of them is lying to you. Your job is to work out which — and prove it.", 'brief2');
+    typeInto(p3, "Examine the study for physical evidence, then question each of the four before you name a name. You'll get one accusation. Make it count.", 'brief3');
+
+    const row = el(`<div class="btn-row"></div>`);
+    const btn = el(`<button class="btn brass">Begin the Investigation</button>`);
+    btn.addEventListener('click', () => { state.screen = 'hub'; render(); });
+    row.appendChild(btn);
+    inner.appendChild(row);
+    return stage;
+  }
+
+  // ---------- HUB ----------
+  function buildHub(){
+    const sheet = el(`<div class="sheet"><div class="sheet-inner"></div></div>`);
+    const inner = sheet.querySelector('.sheet-inner');
+
+    const tabs = el(`
+      <div class="hub-tabs">
+        <button class="hub-tab" data-tab="scene">The Study</button>
+        <button class="hub-tab" data-tab="suspects">The Suspects</button>
+      </div>
+    `);
+    tabs.querySelectorAll('.hub-tab').forEach(b => {
+      if(b.dataset.tab === state.hubTab) b.classList.add('active');
+      b.addEventListener('click', () => { state.hubTab = b.dataset.tab; state.openScene=null; state.openSuspect=null; render(); });
+    });
+    inner.appendChild(tabs);
+
+    if(state.hubTab === 'scene') inner.appendChild(buildScenePane());
+    else inner.appendChild(buildSuspectsPane());
+
+    const row = el(`<div class="btn-row"></div>`);
+    const accuseBtn = el(`<button class="btn">Make Your Accusation →</button>`);
+    accuseBtn.addEventListener('click', () => { state.screen = 'accusation'; render(); window.scrollTo(0,0); });
+    row.appendChild(accuseBtn);
+    inner.appendChild(row);
+
+    return sheet;
+  }
+
+  function buildScenePane(){
+    const wrap = document.createElement('div');
+    wrap.appendChild(el(`<p class="fine">Choose something to examine. Each item you inspect is logged in your notebook.</p>`));
+    const grid = el(`<div class="grid"></div>`);
+    SCENE_CLUES.forEach(c => {
+      const card = el(`
+        <button class="card" aria-expanded="false">
+          ${illust(c.art, 'illust-card')}
+          <span class="tag">${c.tag}</span>
+          <h3>${c.title}</h3>
+          <p class="desc">${c.desc}</p>
+        </button>
+      `);
+      if(state.examined.has(c.id)) card.appendChild(el(`<span class="check">✓</span>`));
+      card.addEventListener('click', () => {
+        state.openScene = state.openScene === c.id ? null : c.id;
+        if(!state.examined.has(c.id)){ state.examined.add(c.id); logEvidence(c.title, c.evidence.label, c.evidence.key); }
+        render();
+      });
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+
+    if(state.openScene){
+      const c = SCENE_CLUES.find(x => x.id === state.openScene);
+      const d = el(`<div class="detail"></div>`);
+      d.appendChild(el(illust(c.art, 'illust-detail')));
+      d.appendChild(el(`<h3>${c.title}</h3>`));
+      const p = el(`<p class="typewrite"></p>`);
+      d.appendChild(p);
+      typeInto(p, c.text, 'scene:'+c.id);
+      d.appendChild(el(`<span class="evidence-tag">Evidence logged: ${c.evidence.label}</span>`));
+      wrap.appendChild(d);
+    }
+    return wrap;
+  }
+
+  function buildSuspectsPane(){
+    const wrap = document.createElement('div');
+    wrap.appendChild(el(`<p class="fine">Question each suspect. Their answers — and what they avoid saying — go in your notebook.</p>`));
+    const grid = el(`<div class="grid"></div>`);
+    SUSPECTS.forEach(s => {
+      const askedCount = s.questions.filter(q => state.asked.has(s.id+'::'+q.id)).length;
+      const card = el(`
+        <button class="card">
+          <div class="card-portrait-wrap"><div class="illust illust-portrait">${ART[s.art]}</div></div>
+          <span class="tag">${s.role}</span>
+          <h3>${s.name}</h3>
+          <p class="desc">${askedCount}/${s.questions.length} questions asked</p>
+        </button>
+      `);
+      if(askedCount === s.questions.length) card.appendChild(el(`<span class="check">✓</span>`));
+      card.addEventListener('click', () => { state.openSuspect = state.openSuspect === s.id ? null : s.id; render(); });
+      grid.appendChild(card);
+    });
+    wrap.appendChild(grid);
+
+    if(state.openSuspect){
+      const s = SUSPECTS.find(x => x.id === state.openSuspect);
+      const d = el(`
+        <div class="detail">
+          <div class="suspect-head">
+            <div class="illust illust-portrait" style="width:64px;flex-shrink:0;">${ART[s.art]}</div>
+            <div>
+              <h3>${s.name}</h3>
+              <p class="fine" style="margin:0">${s.role} · Alibi: ${s.alibi}</p>
+            </div>
+          </div>
+          <div class="qa-list"></div>
+        </div>
+      `);
+      const qList = d.querySelector('.qa-list');
+      s.questions.forEach(q => {
+        const askedKey = s.id+'::'+q.id;
+        const wasAsked = state.asked.has(askedKey);
+        const qBtn = el(`<button class="qa-btn" ${wasAsked ? 'disabled' : ''}><span>${q.q}</span><span class="arrow">${wasAsked ? '✓' : '→'}</span></button>`);
+        qBtn.addEventListener('click', () => {
+          if(state.asked.has(askedKey)) return;
+          state.asked.add(askedKey);
+          logEvidence(s.name, q.label, q.key);
+          render();
+        });
+        qList.appendChild(qBtn);
+        if(wasAsked){
+          const ansBox = el(`<div class="answer-box"></div>`);
+          const p = el(`<span class="typewrite"></span>`);
+          ansBox.appendChild(p);
+          qList.appendChild(ansBox);
+          typeInto(p, q.a, 'ans:'+askedKey);
+        }
+      });
+      wrap.appendChild(d);
+    }
+    return wrap;
+  }
+
+  // ---------- NOTEBOOK ----------
+  function buildNotebook(){
+    const nb = el(`<div class="notebook"><h2>Evidence Notebook</h2><p class="fine">${state.evidenceLog.length} entries logged</p><div class="ev-list"></div></div>`);
+    const list = nb.querySelector('.ev-list');
+    if(state.evidenceLog.length === 0){
+      list.appendChild(el(`<div class="ev-empty">Nothing logged yet. Start examining the study or questioning suspects.</div>`));
+    } else {
+      state.evidenceLog.forEach(e => { list.appendChild(el(`<div class="ev-item"><span class="from">${e.from}</span>${e.label}</div>`)); });
+    }
+    return nb;
+  }
+
+  // ---------- ACCUSATION ----------
+  function buildAccusation(){
+    const sheet = el(`<div class="sheet"><div class="sheet-inner"></div></div>`);
+    const inner = sheet.querySelector('.sheet-inner');
+    inner.appendChild(el(`<h1>Name Your Suspect</h1><p class="fine">You get one accusation. Choose the culprit, the weapon, and the motive.</p>`));
+
+    const board = el(`<div class="board"></div>`);
+    SUSPECTS.forEach(s => {
+      board.appendChild(el(`
+        <div class="board-card">
+          <div class="illust illust-portrait">${ART[s.art]}</div>
+          <div class="board-name">${s.name.split(' ')[0]}</div>
+        </div>
+      `));
+    });
+    inner.appendChild(board);
+
+    const grid = el(`<div class="accuse-grid"></div>`);
+    grid.appendChild(buildAccuseGroup('Who did it?', CULPRITS, 'culprit'));
+    grid.appendChild(buildAccuseGroup('What was the weapon?', WEAPONS, 'weapon'));
+    grid.appendChild(buildAccuseGroup('What was the motive?', MOTIVES, 'motive'));
+    inner.appendChild(grid);
+
+    const row = el(`<div class="btn-row"></div>`);
+    const back = el(`<button class="btn ghost">← Back to the case</button>`);
+    back.addEventListener('click', () => { state.screen = 'hub'; render(); });
+    row.appendChild(back);
+
+    const ready = state.accusation.culprit && state.accusation.weapon && state.accusation.motive;
+    const submit = el(`<button class="btn brass" ${ready ? '' : 'disabled'}>File Accusation</button>`);
+    submit.addEventListener('click', () => { if(!ready) return; if(!state.confirmingAccusation){ state.confirmingAccusation = true; render(); } });
+    row.appendChild(submit);
+    inner.appendChild(row);
+
+    if(ready && state.confirmingAccusation){
+      const confirmBox = el(`<div class="detail"><p><strong>This accusation is final.</strong> Once filed, the case closes — there's no revising your answer. Proceed?</p></div>`);
+      const confirmRow = el(`<div class="btn-row"></div>`);
+      const yes = el(`<button class="btn">Yes — close the case</button>`);
+      yes.addEventListener('click', () => { state.screen = 'ending'; state.confirmingAccusation = false; render(); window.scrollTo(0,0); });
+      const no = el(`<button class="btn ghost">Wait, let me reconsider</button>`);
+      no.addEventListener('click', () => { state.confirmingAccusation = false; render(); });
+      confirmRow.appendChild(yes); confirmRow.appendChild(no);
+      confirmBox.appendChild(confirmRow);
+      inner.appendChild(confirmBox);
+    }
+
+    return sheet;
+  }
+
+  function buildAccuseGroup(title, options, field){
+    const group = el(`<div class="accuse-group"><h3>${title}</h3></div>`);
+    options.forEach(o => {
+      const opt = el(`<button class="opt">${o.label}</button>`);
+      if(state.accusation[field] === o.id) opt.classList.add('selected');
+      opt.addEventListener('click', () => { state.accusation[field] = o.id; state.confirmingAccusation = false; render(); });
+      group.appendChild(opt);
+    });
+    return group;
+  }
+
+  // ---------- ENDING ----------
+  function computeVerdict(){
+    const { culprit, weapon, motive } = state.accusation;
+    const culpritCorrect = culprit === SOLUTION.culprit;
+    const weaponCorrect = weapon === SOLUTION.weapon;
+    const motiveCorrect = motive === SOLUTION.motive;
+    const allCorrect = culpritCorrect && weaponCorrect && motiveCorrect;
+    const strongCase = keyEvidenceCount() >= 5;
+
+    if(allCorrect && strongCase){
+      return { art:'seal-big', stamp: 'SOLVED', title: 'Case Closed — Airtight',
+        text: "You lay it out plainly: Victor Hale, cornered by the ledger you found and the cufflink he couldn't explain away, struck Edmund Blackwood with his own fireplace poker rather than let two years of embezzlement come to light. Marguerite's raised voices, Thomas's silhouette at the window, the unforced latch — none of it leaves room to argue. Victor's composure finally breaks. Blackwood Manor exhales. The confidential stamp goes on your report, and this time you believe it." };
+    }
+    if(allCorrect && !strongCase){
+      return { art:'seal-big', stamp: 'SOLVED', title: 'Case Closed — But Thin',
+        text: "You name Victor Hale, the poker, the embezzlement — and you're right, on every count. But your notebook is lighter than it should be. Without the fuller weight of evidence behind you, the accusation lands more as a guess that happened to be correct than a case built brick by brick. Victor confesses under pressure, more startled than caught. You got there. Next time, look a little harder before you speak." };
+    }
+    if(culpritCorrect && (!weaponCorrect || !motiveCorrect)){
+      const detail = !weaponCorrect ? "it wasn't " + WEAPONS.find(w=>w.id===state.accusation.weapon).label.toLowerCase() : "the motive wasn't quite " + MOTIVES.find(m=>m.id===state.accusation.motive).label.toLowerCase();
+      return { art:'torn', stamp:'PARTIAL', title: 'Right Man, Wrong Detail',
+        text: `You name Victor Hale, and he is, in fact, guilty — his face confirms it before he says a word. But one detail in your account doesn't hold up: ${detail}. He corrects you himself, almost helpfully, on his way out in handcuffs. You solved the who. The how and the why still belonged to him.` };
+    }
+
+    const wrongName = SUSPECTS.find(s => s.id === state.accusation.culprit)?.name || 'the wrong person';
+    return { art:'escape', stamp: 'COLD', title: 'Case Cold — Wrong Man',
+      text: `You accuse ${wrongName}. The room goes quiet, then indignant — and rightly so. Whatever you built your case on, it wasn't enough, and it wasn't aimed at the right person. Across the room, Victor Hale straightens his collar, says nothing, and lets someone else take the fall. He'll be gone by morning, ledger and all. Somewhere in the notebook you carried tonight, the real answer was sitting in plain sight.` };
+  }
+
+  function buildEnding(){
+    const sheet = el(`<div class="sheet"><div class="sheet-inner"></div></div>`);
+    const inner = sheet.querySelector('.sheet-inner');
+    const v = computeVerdict();
+
+    if(v.art === 'seal-big'){
+      inner.appendChild(el(`<div style="text-align:center"><div class="illust" style="width:140px;margin:0 auto 12px;background:transparent;border:none;">${ART.seal}</div></div>`));
+    } else {
+      inner.appendChild(el(illust(v.art, 'illust-hero')));
+    }
+
+    inner.appendChild(el(`<div style="text-align:center"><div class="ending-stamp-wrap"><div class="ending-stamp">${v.stamp}</div></div></div>`));
+    inner.appendChild(el(`<h1>${v.title}</h1>`));
+    const p = el(`<p class="lede typewrite"></p>`);
+    inner.appendChild(p);
+    typeInto(p, v.text, 'ending:'+v.title);
+
+    const recap = el(`
+      <div class="recap">
+        <h3>Your Case</h3>
+        <p class="fine" style="margin:0">
+          Accused: <strong>${SUSPECTS.find(s=>s.id===state.accusation.culprit)?.name}</strong> ·
+          Weapon: <strong>${WEAPONS.find(w=>w.id===state.accusation.weapon)?.label}</strong> ·
+          Motive: <strong>${MOTIVES.find(m=>m.id===state.accusation.motive)?.label}</strong>
+        </p>
+        <ul>
+          <li>${keyEvidenceCount()} of ${KEY_EVIDENCE_TOTAL} key pieces of evidence uncovered</li>
+          <li>${state.evidenceLog.length} total entries in your notebook</li>
+        </ul>
+      </div>
+    `);
+    inner.appendChild(recap);
+
+    const row = el(`<div class="btn-row"></div>`);
+    const again = el(`<button class="btn brass">Investigate Again</button>`);
+    again.addEventListener('click', () => { typedOnce.clear(); state = initialState(); state.screen = 'briefing'; render(); window.scrollTo(0,0); });
+    row.appendChild(again);
+    inner.appendChild(row);
+
+    return sheet;
+  }
+
+  render();
+})();
+</script>
+</body>
+</html>
