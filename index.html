@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ink Lift — remove handwriting from scans and PDFs</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#E7E2D3;
+    --panel:#F4F0E4;
+    --panel-border:#C8BFA8;
+    --ink:#232019;
+    --ink-soft:#635C49;
+    --accent:#33543F;
+    --accent-hover:#284433;
+    --accent-soft:#DDE6DD;
+    --danger:#9C3B2E;
+    --danger-hover:#832F24;
+    --canvas-bg:#DAD4C2;
+    --white:#FBFAF6;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif;
+    font-size:14px;
+    line-height:1.5;
+  }
+
+  header{
+    padding:22px 28px 14px;
+    border-bottom:1px solid var(--panel-border);
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+  }
+  header h1{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    font-size:26px;
+    margin:0;
+    letter-spacing:0.2px;
+  }
+  header p{
+    margin:0;
+    color:var(--ink-soft);
+    font-size:13.5px;
+    max-width:640px;
+  }
+  header p.limits{
+    font-size:12.5px;
+    color:var(--ink-soft);
+  }
+
+  main{
+    display:flex;
+    gap:22px;
+    padding:22px 28px 40px;
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+
+  aside{
+    width:290px;
+    flex-shrink:0;
+    display:flex;
+    flex-direction:column;
+    gap:16px;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:3px;
+    padding:16px 16px 18px;
+  }
+  .panel h2{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    font-size:15px;
+    margin:0 0 4px;
+  }
+  .panel .hint{
+    color:var(--ink-soft);
+    font-size:12.5px;
+    margin:0 0 12px;
+  }
+
+  button{
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:500;
+    border-radius:2px;
+    border:1px solid transparent;
+    cursor:pointer;
+    padding:9px 14px;
+    transition:background-color .12s ease, border-color .12s ease;
+  }
+  button:focus-visible, input:focus-visible{
+    outline:2px solid var(--accent);
+    outline-offset:2px;
+  }
+  button:disabled{
+    opacity:.45;
+    cursor:not-allowed;
+  }
+
+  .btn-primary{
+    background:var(--accent);
+    color:var(--white);
+    width:100%;
+  }
+  .btn-primary:hover:not(:disabled){background:var(--accent-hover);}
+
+  .btn-secondary{
+    background:transparent;
+    border-color:var(--panel-border);
+    color:var(--ink);
+    width:100%;
+  }
+  .btn-secondary:hover:not(:disabled){background:var(--accent-soft); border-color:var(--accent);}
+
+  .btn-danger{
+    background:transparent;
+    border-color:var(--panel-border);
+    color:var(--danger);
+    width:100%;
+  }
+  .btn-danger:hover:not(:disabled){background:#F2E2DE; border-color:var(--danger);}
+
+  .row{display:flex; gap:8px;}
+  .row button{flex:1;}
+
+  .field{margin-bottom:12px;}
+  .field:last-child{margin-bottom:0;}
+  .field label{
+    display:flex;
+    justify-content:space-between;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .field label span.val{color:var(--ink); font-weight:600;}
+
+  input[type=range]{
+    width:100%;
+    accent-color:var(--accent);
+  }
+
+  .swatch-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .swatch{
+    width:28px;height:28px;
+    border-radius:2px;
+    border:1px solid var(--panel-border);
+    flex-shrink:0;
+    background:repeating-conic-gradient(#ddd 0 25%, #eee 0 50%) 0 0/10px 10px;
+  }
+  .swatch-label{font-size:12.5px; color:var(--ink-soft);}
+
+  .tool-toggle{
+    display:flex;
+    gap:6px;
+    margin-bottom:12px;
+  }
+  .tool-toggle button{
+    flex:1;
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--ink-soft);
+  }
+  .tool-toggle button.active{
+    background:var(--accent);
+    border-color:var(--accent);
+    color:var(--white);
+  }
+
+  section.stage{
+    flex:1;
+    min-width:320px;
+    display:flex;
+    flex-direction:column;
+    gap:14px;
+  }
+
+  .status-msg{
+    font-size:12.5px;
+    color:var(--accent);
+    font-weight:500;
+  }
+
+  .page-strip{
+    display:flex;
+    gap:10px;
+    overflow-x:auto;
+    padding-bottom:4px;
+  }
+  .page-thumb{
+    position:relative;
+    flex-shrink:0;
+    width:58px;
+    height:78px;
+    border-radius:2px;
+    border:2px solid var(--panel-border);
+    background:var(--white) center/cover no-repeat;
+    cursor:pointer;
+    overflow:hidden;
+  }
+  .page-thumb.active{border-color:var(--accent);}
+  .page-thumb img{width:100%; height:100%; object-fit:cover; display:block;}
+  .page-thumb .remove{
+    position:absolute;
+    top:2px; right:2px;
+    width:16px; height:16px;
+    line-height:14px;
+    text-align:center;
+    background:rgba(35,32,25,.72);
+    color:#fff;
+    border-radius:2px;
+    font-size:11px;
+    padding:0;
+    border:none;
+  }
+  .page-thumb-add{
+    flex-shrink:0;
+    width:58px;
+    height:78px;
+    border-radius:2px;
+    border:2px dashed var(--panel-border);
+    background:transparent;
+    color:var(--ink-soft);
+    font-size:22px;
+    cursor:pointer;
+  }
+  .page-thumb-add:hover{border-color:var(--accent); color:var(--accent);}
+
+  .canvas-wrap{
+    position:relative;
+    background:var(--canvas-bg);
+    border:1px solid var(--panel-border);
+    border-radius:3px;
+    min-height:420px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    overflow:auto;
+  }
+  .canvas-wrap.drag-over{
+    outline:2px dashed var(--accent);
+    outline-offset:-8px;
+  }
+  .canvas-wrap canvas{
+    max-width:100%;
+    height:auto;
+    box-shadow:0 2px 10px rgba(35,32,25,.18);
+    background:#fff;
+    display:block;
+  }
+  .canvas-wrap canvas.eyedropper-cursor{cursor:crosshair;}
+  .canvas-wrap canvas.brush-cursor{cursor:cell;}
+
+  .empty-state{
+    text-align:center;
+    color:var(--ink-soft);
+    max-width:340px;
+  }
+  .empty-state h3{
+    font-family:'Source Serif 4',serif;
+    font-weight:600;
+    color:var(--ink);
+    margin:0 0 6px;
+    font-size:17px;
+  }
+  .empty-state button{margin-top:14px;}
+
+  .stage-footer{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .stage-footer .left-actions, .stage-footer .right-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .stage-footer button{width:auto;}
+
+  input[type=file]{display:none;}
+
+  @media (max-width:760px){
+    main{flex-direction:column;}
+    aside{width:100%;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ink Lift</h1>
+  <p>Load a scanned page or a PDF. Colored pen and pencil marks are lifted automatically; anything left over you can erase by hand.</p>
+  <p class="limits">Automatic removal works by ink color and darkness — it's not a model trained to recognize handwriting, so black or blue-black pen written directly over black print still needs the touch-up brush.</p>
+</header>
+
+<main>
+  <aside>
+    <div class="panel">
+      <h2>Page</h2>
+      <p class="hint">JPG, PNG, or PDF. Each PDF page is cleaned automatically as it loads.</p>
+      <button class="btn-primary" id="btnChooseFile">Choose file</button>
+      <input type="file" id="fileInput" accept="image/*,application/pdf" multiple>
+    </div>
+
+    <div class="panel" id="colorToolPanel" style="display:none;">
+      <h2>Remove by ink color</h2>
+      <p class="hint">Colored ink is already removed automatically. Use this to target a specific color more aggressively, or one auto-clean missed.</p>
+      <div class="swatch-row">
+        <div class="swatch" id="colorSwatch"></div>
+        <span class="swatch-label" id="colorLabel">No color picked</span>
+      </div>
+      <button class="btn-secondary" id="btnEyedropper">Pick color from page</button>
+      <div class="field" style="margin-top:12px;">
+        <label>Tolerance <span class="val" id="toleranceVal">35</span></label>
+        <input type="range" id="toleranceSlider" min="1" max="100" value="35">
+      </div>
+      <div class="row" style="margin-top:4px;">
+        <button class="btn-primary" id="btnApplyColor" disabled>Apply</button>
+        <button class="btn-secondary" id="btnCancelColor" disabled>Cancel</button>
+      </div>
+    </div>
+
+    <div class="panel" id="fadeToolPanel" style="display:none;">
+      <h2>Fade faint marks</h2>
+      <p class="hint">Fades light pencil or faint pen while leaving bold print alone.</p>
+      <div class="field">
+        <label>Amount <span class="val" id="fadeVal">0</span></label>
+        <input type="range" id="fadeSlider" min="0" max="100" value="0">
+      </div>
+      <div class="row">
+        <button class="btn-primary" id="btnApplyFade" disabled>Apply</button>
+        <button class="btn-secondary" id="btnCancelFade" disabled>Cancel</button>
+      </div>
+    </div>
+
+    <div class="panel" id="brushToolPanel" style="display:none;">
+      <h2>Touch-up brush</h2>
+      <p class="hint">Paint directly over marks that automatic cleanup missed — the main tool for same-color pen over print.</p>
+      <div class="tool-toggle">
+        <button id="btnBrushOn">Brush on</button>
+        <button id="btnBrushOff" class="active">Brush off</button>
+      </div>
+      <div class="field">
+        <label>Brush size <span class="val" id="brushVal">24</span></label>
+        <input type="range" id="brushSlider" min="4" max="80" value="24">
+      </div>
+    </div>
+
+    <div class="panel" id="historyPanel" style="display:none;">
+      <h2>History</h2>
+      <div class="row" style="margin-bottom:8px;">
+        <button class="btn-secondary" id="btnUndo" disabled>Undo</button>
+        <button class="btn-danger" id="btnReset" disabled>Reset page</button>
+      </div>
+      <button class="btn-secondary" id="btnAutoClean" style="margin-bottom:8px;">Re-run auto-clean</button>
+      <button class="btn-secondary" id="btnCompare">Hold to compare original</button>
+    </div>
+  </aside>
+
+  <section class="stage">
+    <div class="page-strip" id="pageStrip" style="display:none;"></div>
+    <div class="status-msg" id="statusMsg" style="display:none;"></div>
+
+    <div class="canvas-wrap" id="canvasWrap">
+      <div class="empty-state" id="emptyState">
+        <h3>Drop a scanned page or PDF here</h3>
+        <p>Colored handwriting lifts out on its own. Same-color pen over printed text needs a pass with the touch-up brush.</p>
+        <button class="btn-primary" id="btnEmptyChoose">Choose file</button>
+      </div>
+      <canvas id="mainCanvas" style="display:none;"></canvas>
+    </div>
+
+    <div class="stage-footer" id="stageFooter" style="display:none;">
+      <div class="left-actions">
+        <span class="hint" id="pageInfo" style="color:var(--ink-soft); font-size:12.5px;"></span>
+      </div>
+      <div class="right-actions">
+        <button class="btn-secondary" id="btnDownloadAll" style="display:none;">Download all (.zip)</button>
+        <button class="btn-secondary" id="btnDownloadPdf">Download as PDF</button>
+        <button class="btn-primary" id="btnDownload">Download PNG</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  const MAX_DIM = 1800; // cap processing resolution for performance
+  const AUTO_FADE_AMOUNT = 25; // conservative default for the automatic fade pass
+  const AUTO_SAT_THRESHOLD = 0.22; // saturation above which a pixel is treated as colored ink
+  const AUTO_SAT_RAMP = 0.18;
+
+  let pdfjsLib = null;
+  if(typeof window['pdfjs-dist/build/pdf'] !== 'undefined'){
+    pdfjsLib = window['pdfjs-dist/build/pdf'];
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  }
+
+  // ---------- state ----------
+  let pages = [];      // {id, name, history:[ImageData,...], paper:{r,g,b}, thumbUrl}
+  let activeIndex = -1;
+  let isLoading = false;
+
+  let mode = "none";   // "none" | "eyedropper" | "brush"
+  let pickedColor = null;
+  let previewBaseline = null; // ImageData snapshot the current preview is computed from
+  let brushOn = false;
+  let strokeData = null; // working ImageData mutated during a brush stroke
+  let strokeLast = null; // last {x,y} for interpolation
+  let compareHeld = false;
+
+  // ---------- dom ----------
+  const canvas = document.getElementById('mainCanvas');
+  const ctx = canvas.getContext('2d', {willReadFrequently:true});
+  const canvasWrap = document.getElementById('canvasWrap');
+  const emptyState = document.getElementById('emptyState');
+  const pageStrip = document.getElementById('pageStrip');
+  const statusMsg = document.getElementById('statusMsg');
+  const stageFooter = document.getElementById('stageFooter');
+  const pageInfo = document.getElementById('pageInfo');
+
+  const fileInput = document.getElementById('fileInput');
+  const btnChooseFile = document.getElementById('btnChooseFile');
+  const btnEmptyChoose = document.getElementById('btnEmptyChoose');
+
+  const colorToolPanel = document.getElementById('colorToolPanel');
+  const fadeToolPanel = document.getElementById('fadeToolPanel');
+  const brushToolPanel = document.getElementById('brushToolPanel');
+  const historyPanel = document.getElementById('historyPanel');
+
+  const colorSwatch = document.getElementById('colorSwatch');
+  const colorLabel = document.getElementById('colorLabel');
+  const btnEyedropper = document.getElementById('btnEyedropper');
+  const toleranceSlider = document.getElementById('toleranceSlider');
+  const toleranceVal = document.getElementById('toleranceVal');
+  const btnApplyColor = document.getElementById('btnApplyColor');
+  const btnCancelColor = document.getElementById('btnCancelColor');
+
+  const fadeSlider = document.getElementById('fadeSlider');
+  const fadeVal = document.getElementById('fadeVal');
+  const btnApplyFade = document.getElementById('btnApplyFade');
+  const btnCancelFade = document.getElementById('btnCancelFade');
+
+  const btnBrushOn = document.getElementById('btnBrushOn');
+  const btnBrushOff = document.getElementById('btnBrushOff');
+  const brushSlider = document.getElementById('brushSlider');
+  const brushVal = document.getElementById('brushVal');
+
+  const btnUndo = document.getElementById('btnUndo');
+  const btnReset = document.getElementById('btnReset');
+  const btnAutoClean = document.getElementById('btnAutoClean');
+  const btnCompare = document.getElementById('btnCompare');
+
+  const btnDownload = document.getElementById('btnDownload');
+  const btnDownloadAll = document.getElementById('btnDownloadAll');
+  const btnDownloadPdf = document.getElementById('btnDownloadPdf');
+
+  let idCounter = 1;
+
+  // ---------- helpers ----------
+  function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+
+  function cloneImageData(id){
+    return new ImageData(new Uint8ClampedArray(id.data), id.width, id.height);
+  }
+
+  function luminance(r,g,b){return 0.299*r+0.587*g+0.114*b;}
+
+  function colorDist(r1,g1,b1,r2,g2,b2){
+    const dr=r1-r2, dg=g1-g2, db=b1-b2;
+    return Math.sqrt(dr*dr+dg*dg+db*db);
+  }
+
+  function rgbToHsl(r,g,b){
+    r/=255; g/=255; b/=255;
+    const max=Math.max(r,g,b), min=Math.min(r,g,b);
+    let h=0, s=0;
+    const l=(max+min)/2;
+    const d=max-min;
+    if(d!==0){
+      s = l>0.5 ? d/(2-max-min) : d/(max+min);
+      switch(max){
+        case r: h=(g-b)/d + (g<b?6:0); break;
+        case g: h=(b-r)/d + 2; break;
+        default: h=(r-g)/d + 4; break;
+      }
+      h/=6;
+    }
+    return {h,s,l};
+  }
+
+  function detectPaperColor(imageData){
+    const data = imageData.data;
+    let rs=0,gs=0,bs=0,count=0;
+    for(let i=0;i<data.length;i+=28){ // sample ~ every 7th pixel
+      const r=data[i], g=data[i+1], b=data[i+2];
+      if(luminance(r,g,b) > 200){ rs+=r; gs+=g; bs+=b; count++; }
+    }
+    if(count===0) return {r:255,g:255,b:255};
+    return {r:Math.round(rs/count), g:Math.round(gs/count), b:Math.round(bs/count)};
+  }
+
+  function currentPage(){
+    return activeIndex>=0 ? pages[activeIndex] : null;
+  }
+
+  function topState(page){
+    return page.history[page.history.length-1];
+  }
+
+  function setStatus(text){
+    if(!text){ statusMsg.style.display='none'; statusMsg.textContent=''; return; }
+    statusMsg.style.display='';
+    statusMsg.textContent = text;
+  }
+
+  function setLoadingControls(disabled){
+    btnChooseFile.disabled = disabled;
+    btnEmptyChoose.disabled = disabled;
+  }
+
+  // ---------- rendering ----------
+  function redrawFromImageData(imageData){
+    canvas.width = imageData.width;
+    canvas.height = imageData.height;
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  function renderActive(){
+    const page = currentPage();
+    if(!page){
+      emptyState.style.display = '';
+      canvas.style.display = 'none';
+      stageFooter.style.display = 'none';
+      pageStrip.style.display = 'none';
+      return;
+    }
+    emptyState.style.display = 'none';
+    canvas.style.display = '';
+    stageFooter.style.display = '';
+    redrawFromImageData(topState(page));
+    updateToolPanels();
+    updatePageStrip();
+    pageInfo.textContent = page.name + (page.history.length>2 ? ' — edited' : ' — auto-cleaned');
+    btnDownloadAll.style.display = pages.length>1 ? '' : 'none';
+  }
+
+  function updateToolPanels(){
+    const page = currentPage();
+    const has = !!page;
+    colorToolPanel.style.display = has ? '' : 'none';
+    fadeToolPanel.style.display = has ? '' : 'none';
+    brushToolPanel.style.display = has ? '' : 'none';
+    historyPanel.style.display = has ? '' : 'none';
+    if(!has) return;
+    btnUndo.disabled = page.history.length<=1;
+    btnReset.disabled = page.history.length<=1;
+  }
+
+  function updatePageStrip(){
+    if(pages.length===0){ pageStrip.style.display='none'; return; }
+    pageStrip.style.display = 'flex';
+    pageStrip.innerHTML = '';
+    pages.forEach((p, i)=>{
+      const div = document.createElement('div');
+      div.className = 'page-thumb' + (i===activeIndex ? ' active' : '');
+      div.title = p.name;
+      const img = document.createElement('img');
+      img.src = p.thumbUrl;
+      div.appendChild(img);
+      const rm = document.createElement('button');
+      rm.className = 'remove';
+      rm.textContent = '\u00d7';
+      rm.title = 'Remove page';
+      rm.addEventListener('click', (e)=>{ e.stopPropagation(); removePage(i); });
+      div.appendChild(rm);
+      div.addEventListener('click', ()=>{ setActive(i); });
+      pageStrip.appendChild(div);
+    });
+    const addBtn = document.createElement('button');
+    addBtn.className = 'page-thumb-add';
+    addBtn.textContent = '+';
+    addBtn.title = 'Add another page';
+    addBtn.disabled = isLoading;
+    addBtn.addEventListener('click', ()=> fileInput.click());
+    pageStrip.appendChild(addBtn);
+  }
+
+  function refreshThumb(page){
+    const src = topState(page);
+    const t = document.createElement('canvas');
+    const scale = 58 / src.width;
+    t.width = 58; t.height = Math.round(src.height*scale);
+    const full = document.createElement('canvas');
+    full.width = src.width; full.height = src.height;
+    full.getContext('2d').putImageData(src,0,0);
+    t.getContext('2d').drawImage(full, 0, 0, t.width, t.height);
+    page.thumbUrl = t.toDataURL('image/png');
+  }
+
+  // ---------- automatic cleanup pipeline ----------
+  function applyAutoColorPass(baseData, paper){
+    const out = cloneImageData(baseData);
+    const d = out.data, s = baseData.data;
+    for(let i=0;i<d.length;i+=4){
+      const r=s[i], g=s[i+1], b=s[i+2];
+      const hsl = rgbToHsl(r,g,b);
+      if(hsl.l > 0.94) continue; // already near paper white, leave it
+      if(hsl.s > AUTO_SAT_THRESHOLD){
+        const alpha = clamp((hsl.s-AUTO_SAT_THRESHOLD)/AUTO_SAT_RAMP, 0, 1);
+        d[i]   = r + (paper.r-r)*alpha;
+        d[i+1] = g + (paper.g-g)*alpha;
+        d[i+2] = b + (paper.b-b)*alpha;
+      }
+    }
+    return out;
+  }
+
+  function applyFadePass(baseData, amountPct, paper){
+    const out = cloneImageData(baseData);
+    const cutoff = 255 - (amountPct/100)*190;
+    const feather = 35;
+    const d = out.data, s = baseData.data;
+    for(let i=0;i<d.length;i+=4){
+      const r=s[i], g=s[i+1], b=s[i+2];
+      const L = luminance(r,g,b);
+      if(L > cutoff-feather){
+        let alpha = L>=cutoff ? 1 : (L-(cutoff-feather))/feather;
+        d[i]   = r + (paper.r-r)*alpha;
+        d[i+1] = g + (paper.g-g)*alpha;
+        d[i+2] = b + (paper.b-b)*alpha;
+      }
+    }
+    return out;
+  }
+
+  function runAutoClean(originalData, paper){
+    const colorPass = applyAutoColorPass(originalData, paper);
+    return applyFadePass(colorPass, AUTO_FADE_AMOUNT, paper);
+  }
+
+  function createPageFromImageData(name, original){
+    const paper = detectPaperColor(original);
+    const autoCleaned = runAutoClean(original, paper);
+    const page = {
+      id: idCounter++,
+      name,
+      history: [original, autoCleaned],
+      paper,
+      thumbUrl: ''
+    };
+    refreshThumb(page);
+    pages.push(page);
+    return page;
+  }
+
+  // ---------- page loading ----------
+  function loadImageFile(file){
+    return new Promise((resolve,reject)=>{
+      const reader = new FileReader();
+      reader.onload = (e)=>{
+        const img = new Image();
+        img.onload = ()=>{
+          let w = img.naturalWidth, h = img.naturalHeight;
+          const longest = Math.max(w,h);
+          if(longest > MAX_DIM){
+            const scale = MAX_DIM/longest;
+            w = Math.round(w*scale); h = Math.round(h*scale);
+          }
+          const off = document.createElement('canvas');
+          off.width = w; off.height = h;
+          const octx = off.getContext('2d');
+          octx.drawImage(img, 0, 0, w, h);
+          const original = octx.getImageData(0,0,w,h);
+          createPageFromImageData(file.name.replace(/\.[^.]+$/, ''), original);
+          resolve();
+        };
+        img.onerror = ()=> reject(new Error('This image could not be read.'));
+        img.src = e.target.result;
+      };
+      reader.onerror = ()=> reject(new Error('This file could not be read.'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function loadPdfFile(file){
+    if(!pdfjsLib) throw new Error('The PDF reader did not load — check your connection and try again.');
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({data: buf}).promise;
+    const baseName = file.name.replace(/\.[^.]+$/, '');
+    for(let i=1; i<=pdf.numPages; i++){
+      setStatus(`Processing page ${i} of ${pdf.numPages}\u2026`);
+      const page = await pdf.getPage(i);
+      const vp1 = page.getViewport({scale:1});
+      const scale = clamp(MAX_DIM / Math.max(vp1.width, vp1.height), 0.5, 3);
+      const viewport = page.getViewport({scale});
+      const off = document.createElement('canvas');
+      off.width = Math.round(viewport.width);
+      off.height = Math.round(viewport.height);
+      const octx = off.getContext('2d');
+      await page.render({canvasContext: octx, viewport}).promise;
+      const original = octx.getImageData(0, 0, off.width, off.height);
+      const name = pdf.numPages > 1 ? `${baseName} p${i}` : baseName;
+      createPageFromImageData(name, original);
+      await new Promise(r => requestAnimationFrame(r)); // let the UI breathe between pages
+    }
+  }
+
+  async function addFiles(fileList){
+    if(isLoading) return;
+    const files = Array.from(fileList).filter(f =>
+      f.type.startsWith('image/') || f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+    );
+    if(files.length===0) return;
+
+    isLoading = true;
+    setLoadingControls(true);
+    const firstNewIndex = pages.length;
+    setStatus('Loading\u2026');
+
+    for(const file of files){
+      try{
+        if(file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')){
+          await loadPdfFile(file);
+        } else {
+          await loadImageFile(file);
+        }
+      }catch(err){
+        console.error(err);
+        alert('Could not load ' + file.name + (err && err.message ? ': ' + err.message : ''));
+      }
+    }
+
+    setStatus('');
+    isLoading = false;
+    setLoadingControls(false);
+
+    if(pages.length > firstNewIndex){
+      activeIndex = firstNewIndex;
+    }
+    resetToolState();
+    renderActive();
+  }
+
+  function setActive(i){
+    activeIndex = i;
+    resetToolState();
+    renderActive();
+  }
+
+  function removePage(i){
+    pages.splice(i,1);
+    if(activeIndex >= pages.length) activeIndex = pages.length-1;
+    resetToolState();
+    renderActive();
+  }
+
+  // ---------- undo / reset ----------
+  function commit(imageData){
+    const page = currentPage();
+    page.history.push(imageData);
+    if(page.history.length > 25) page.history.shift();
+    refreshThumb(page);
+    renderActive();
+  }
+
+  function undo(){
+    const page = currentPage();
+    if(page.history.length>1) page.history.pop();
+    refreshThumb(page);
+    renderActive();
+  }
+
+  function resetPage(){
+    const page = currentPage();
+    page.history = [page.history[0]];
+    refreshThumb(page);
+    renderActive();
+  }
+
+  // ---------- tool state ----------
+  function resetToolState(){
+    mode = "none";
+    pickedColor = null;
+    previewBaseline = null;
+    colorSwatch.style.background = '';
+    colorLabel.textContent = 'No color picked';
+    btnApplyColor.disabled = true;
+    btnCancelColor.disabled = true;
+    toleranceSlider.disabled = true;
+    fadeSlider.value = 0;
+    fadeVal.textContent = '0';
+    btnApplyFade.disabled = true;
+    btnCancelFade.disabled = true;
+    setBrush(false);
+    canvas.classList.remove('eyedropper-cursor','brush-cursor');
+  }
+
+  function setBrush(on){
+    brushOn = on;
+    btnBrushOn.classList.toggle('active', on);
+    btnBrushOff.classList.toggle('active', !on);
+    canvas.classList.toggle('brush-cursor', on);
+    if(on){
+      mode = "brush";
+    } else if(mode === "brush"){
+      mode = "none";
+    }
+  }
+
+  // ---------- color removal preview (manual, on top of auto-clean) ----------
+  function applyColorRemovalPass(baseData, target, tolerancePct, paper){
+    const out = cloneImageData(baseData);
+    const maxDist = 300;
+    const threshold = (tolerancePct/100) * maxDist;
+    const feather = 40;
+    const d = out.data, s = baseData.data;
+    for(let i=0;i<d.length;i+=4){
+      const r=s[i], g=s[i+1], b=s[i+2];
+      const dist = colorDist(r,g,b, target.r,target.g,target.b);
+      if(dist < threshold+feather){
+        let alpha = dist<=threshold ? 1 : 1-(dist-threshold)/feather;
+        d[i]   = r + (paper.r-r)*alpha;
+        d[i+1] = g + (paper.g-g)*alpha;
+        d[i+2] = b + (paper.b-b)*alpha;
+      }
+    }
+    return out;
+  }
+
+  function updateColorPreview(){
+    const page = currentPage();
+    if(!page || !pickedColor || !previewBaseline) return;
+    const tol = parseInt(toleranceSlider.value,10);
+    const preview = applyColorRemovalPass(previewBaseline, pickedColor, tol, page.paper);
+    redrawFromImageData(preview);
+  }
+
+  function updateFadePreview(){
+    const page = currentPage();
+    if(!page || !previewBaseline) return;
+    const amount = parseInt(fadeSlider.value,10);
+    const preview = applyFadePass(previewBaseline, amount, page.paper);
+    redrawFromImageData(preview);
+  }
+
+  // ---------- brush ----------
+  function stampCircle(data,width,height,cx,cy,radius,paper){
+    const feather = Math.max(3, radius*0.35);
+    const rOuter = radius+feather;
+    const minX = Math.max(0, Math.floor(cx-rOuter));
+    const maxX = Math.min(width-1, Math.ceil(cx+rOuter));
+    const minY = Math.max(0, Math.floor(cy-rOuter));
+    const maxY = Math.min(height-1, Math.ceil(cy+rOuter));
+    for(let y=minY;y<=maxY;y++){
+      for(let x=minX;x<=maxX;x++){
+        const dx=x-cx, dy=y-cy;
+        const dist = Math.sqrt(dx*dx+dy*dy);
+        if(dist<=rOuter){
+          let alpha = dist<=radius ? 1 : 1-(dist-radius)/feather;
+          if(alpha<=0) continue;
+          const idx = (y*width+x)*4;
+          data[idx]   += (paper.r-data[idx])*alpha;
+          data[idx+1] += (paper.g-data[idx+1])*alpha;
+          data[idx+2] += (paper.b-data[idx+2])*alpha;
+        }
+      }
+    }
+  }
+
+  function canvasCoordsFromEvent(e){
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const clientX = (e.touches ? e.touches[0].clientX : e.clientX);
+    const clientY = (e.touches ? e.touches[0].clientY : e.clientY);
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  }
+
+  function brushStart(e){
+    const page = currentPage();
+    if(!page) return;
+    strokeData = cloneImageData(topState(page));
+    const {x,y} = canvasCoordsFromEvent(e);
+    const radius = parseInt(brushSlider.value,10);
+    stampCircle(strokeData.data, strokeData.width, strokeData.height, x, y, radius, page.paper);
+    strokeLast = {x,y};
+    redrawFromImageData(strokeData);
+    e.preventDefault();
+  }
+
+  function brushMove(e){
+    if(!strokeData) return;
+    const page = currentPage();
+    const {x,y} = canvasCoordsFromEvent(e);
+    const radius = parseInt(brushSlider.value,10);
+    const dx = x-strokeLast.x, dy = y-strokeLast.y;
+    const dist = Math.sqrt(dx*dx+dy*dy);
+    const step = Math.max(2, radius/3);
+    const steps = Math.max(1, Math.floor(dist/step));
+    for(let i=1;i<=steps;i++){
+      const px = strokeLast.x + dx*(i/steps);
+      const py = strokeLast.y + dy*(i/steps);
+      stampCircle(strokeData.data, strokeData.width, strokeData.height, px, py, radius, page.paper);
+    }
+    strokeLast = {x,y};
+    redrawFromImageData(strokeData);
+    e.preventDefault();
+  }
+
+  function brushEnd(){
+    if(!strokeData) return;
+    commit(strokeData);
+    strokeData = null;
+    strokeLast = null;
+  }
+
+  // ---------- event wiring ----------
+  btnChooseFile.addEventListener('click', ()=> fileInput.click());
+  btnEmptyChoose.addEventListener('click', ()=> fileInput.click());
+  fileInput.addEventListener('change', (e)=>{ addFiles(e.target.files); fileInput.value=''; });
+
+  ['dragover','dragenter'].forEach(evt=>{
+    canvasWrap.addEventListener(evt, (e)=>{ e.preventDefault(); canvasWrap.classList.add('drag-over'); });
+  });
+  ['dragleave','drop'].forEach(evt=>{
+    canvasWrap.addEventListener(evt, (e)=>{ e.preventDefault(); canvasWrap.classList.remove('drag-over'); });
+  });
+  canvasWrap.addEventListener('drop', (e)=>{
+    if(e.dataTransfer && e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
+  });
+
+  btnEyedropper.addEventListener('click', ()=>{
+    mode = "eyedropper";
+    canvas.classList.add('eyedropper-cursor');
+    canvas.classList.remove('brush-cursor');
+    setBrush(false);
+  });
+
+  toleranceSlider.addEventListener('input', ()=>{
+    toleranceVal.textContent = toleranceSlider.value;
+    if(pickedColor) updateColorPreview();
+  });
+
+  btnApplyColor.addEventListener('click', ()=>{
+    const page = currentPage();
+    if(!page || !previewBaseline || !pickedColor) return;
+    const tol = parseInt(toleranceSlider.value,10);
+    const result = applyColorRemovalPass(previewBaseline, pickedColor, tol, page.paper);
+    commit(result);
+    pickedColor = null;
+    previewBaseline = null;
+    colorSwatch.style.background = '';
+    colorLabel.textContent = 'No color picked';
+    btnApplyColor.disabled = true;
+    btnCancelColor.disabled = true;
+    toleranceSlider.disabled = true;
+  });
+
+  btnCancelColor.addEventListener('click', ()=>{
+    pickedColor = null;
+    previewBaseline = null;
+    colorSwatch.style.background = '';
+    colorLabel.textContent = 'No color picked';
+    btnApplyColor.disabled = true;
+    btnCancelColor.disabled = true;
+    toleranceSlider.disabled = true;
+    renderActive();
+  });
+
+  fadeSlider.addEventListener('input', ()=>{
+    fadeVal.textContent = fadeSlider.value;
+    const page = currentPage();
+    if(!page) return;
+    if(!previewBaseline){ previewBaseline = topState(page); }
+    btnApplyFade.disabled = fadeSlider.value==='0';
+    btnCancelFade.disabled = fadeSlider.value==='0';
+    updateFadePreview();
+  });
+
+  btnApplyFade.addEventListener('click', ()=>{
+    const page = currentPage();
+    if(!page || !previewBaseline) return;
+    const amount = parseInt(fadeSlider.value,10);
+    const result = applyFadePass(previewBaseline, amount, page.paper);
+    commit(result);
+    previewBaseline = null;
+    fadeSlider.value = 0;
+    fadeVal.textContent = '0';
+    btnApplyFade.disabled = true;
+    btnCancelFade.disabled = true;
+  });
+
+  btnCancelFade.addEventListener('click', ()=>{
+    previewBaseline = null;
+    fadeSlider.value = 0;
+    fadeVal.textContent = '0';
+    btnApplyFade.disabled = true;
+    btnCancelFade.disabled = true;
+    renderActive();
+  });
+
+  btnBrushOn.addEventListener('click', ()=> setBrush(true));
+  btnBrushOff.addEventListener('click', ()=> setBrush(false));
+  brushSlider.addEventListener('input', ()=>{ brushVal.textContent = brushSlider.value; });
+
+  btnUndo.addEventListener('click', undo);
+  btnReset.addEventListener('click', ()=>{
+    if(confirm('Discard all edits on this page and return to the untouched original?')) resetPage();
+  });
+  btnAutoClean.addEventListener('click', ()=>{
+    const page = currentPage();
+    if(!page) return;
+    const original = page.history[0];
+    const cleaned = runAutoClean(original, page.paper);
+    commit(cleaned);
+  });
+
+  btnCompare.addEventListener('mousedown', ()=>{
+    const page = currentPage();
+    if(!page) return;
+    compareHeld = true;
+    redrawFromImageData(page.history[0]);
+  });
+  ['mouseup','mouseleave'].forEach(evt=>{
+    btnCompare.addEventListener(evt, ()=>{
+      if(compareHeld){ compareHeld = false; const page=currentPage(); if(page) redrawFromImageData(topState(page)); }
+    });
+  });
+
+  canvas.addEventListener('click', (e)=>{
+    if(mode !== "eyedropper") return;
+    const page = currentPage();
+    if(!page) return;
+    const {x,y} = canvasCoordsFromEvent(e);
+    const top = topState(page);
+    const data = top.data;
+    const ix = clamp(Math.round(x),0,top.width-1);
+    const iy = clamp(Math.round(y),0,top.height-1);
+    const idx = (iy*top.width+ix)*4;
+    pickedColor = {r:data[idx], g:data[idx+1], b:data[idx+2]};
+    colorSwatch.style.background = `rgb(${pickedColor.r},${pickedColor.g},${pickedColor.b})`;
+    colorLabel.textContent = `rgb(${pickedColor.r}, ${pickedColor.g}, ${pickedColor.b})`;
+    previewBaseline = top;
+    btnApplyColor.disabled = false;
+    btnCancelColor.disabled = false;
+    toleranceSlider.disabled = false;
+    mode = "none";
+    canvas.classList.remove('eyedropper-cursor');
+    updateColorPreview();
+  });
+
+  canvas.addEventListener('mousedown', (e)=>{ if(brushOn) brushStart(e); });
+  canvas.addEventListener('mousemove', (e)=>{ if(brushOn && strokeData) brushMove(e); });
+  window.addEventListener('mouseup', ()=>{ if(strokeData) brushEnd(); });
+
+  canvas.addEventListener('touchstart', (e)=>{ if(brushOn) brushStart(e); }, {passive:false});
+  canvas.addEventListener('touchmove', (e)=>{ if(brushOn && strokeData) brushMove(e); }, {passive:false});
+  canvas.addEventListener('touchend', ()=>{ if(strokeData) brushEnd(); });
+
+  function pageCanvasBlob(page){
+    return new Promise(resolve=>{
+      const off = document.createElement('canvas');
+      const src = topState(page);
+      off.width = src.width; off.height = src.height;
+      off.getContext('2d').putImageData(src,0,0);
+      off.toBlob(resolve, 'image/png');
+    });
+  }
+
+  btnDownload.addEventListener('click', async ()=>{
+    const page = currentPage();
+    if(!page) return;
+    const blob = await pageCanvasBlob(page);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = page.name + '-cleaned.png';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  });
+
+  btnDownloadAll.addEventListener('click', async ()=>{
+    if(typeof JSZip === 'undefined'){
+      alert('Could not load the zip library — try downloading pages one at a time.');
+      return;
+    }
+    const zip = new JSZip();
+    for(const page of pages){
+      const blob = await pageCanvasBlob(page);
+      zip.file(page.name + '-cleaned.png', blob);
+    }
+    const content = await zip.generateAsync({type:'blob'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = 'ink-lift-pages.zip';
+    a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  });
+
+  btnDownloadPdf.addEventListener('click', async ()=>{
+    if(pages.length===0) return;
+    if(typeof PDFLib === 'undefined'){
+      alert('Could not load the PDF library — try downloading PNGs instead.');
+      return;
+    }
+    btnDownloadPdf.disabled = true;
+    setStatus('Building PDF\u2026');
+    try{
+      const { PDFDocument } = PDFLib;
+      const pdfDoc = await PDFDocument.create();
+      for(const page of pages){
+        const src = topState(page);
+        const blob = await pageCanvasBlob(page);
+        const bytes = new Uint8Array(await blob.arrayBuffer());
+        const png = await pdfDoc.embedPng(bytes);
+        const pg = pdfDoc.addPage([src.width, src.height]);
+        pg.drawImage(png, {x:0, y:0, width:src.width, height:src.height});
+      }
+      const bytes = await pdfDoc.save();
+      const blob = new Blob([bytes], {type:'application/pdf'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'ink-lift-cleaned.pdf';
+      a.click();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+    }catch(err){
+      console.error(err);
+      alert('Could not build the PDF: ' + (err && err.message ? err.message : err));
+    }
+    setStatus('');
+    btnDownloadPdf.disabled = false;
+  });
+
+  renderActive();
+})();
+</script>
+</body>
+</html>
